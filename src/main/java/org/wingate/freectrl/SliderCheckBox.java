@@ -16,9 +16,10 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionListener;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.RoundRectangle2D;
-import java.util.EventListener;
 import javax.swing.JPanel;
 import javax.swing.event.EventListenerList;
+import org.wingate.freectrl.data.slide.PositionEvent;
+import org.wingate.freectrl.data.slide.PositionEventListener;
 
 /**
  *
@@ -164,21 +165,6 @@ public class SliderCheckBox extends JPanel {
                 break;
             }
         }
-    }
-    
-    public static interface PositionEvent {
-        public void isSelected(boolean sel);
-    }
-    
-    public abstract static class PositionEventListener implements PositionEvent, EventListener {
-        // All events
-    }
-    
-    public static class PositionEventAdapter extends PositionEventListener {
-
-        @Override
-        public void isSelected(boolean sel) { }
-        
     }
     
     // </editor-fold>
