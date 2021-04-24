@@ -144,11 +144,11 @@ public class SliderCheckBox extends JPanel {
 
     private final EventListenerList listeners = new EventListenerList();
 
-    public void addAudioVideoListener(PositionEvent listener) {
+    public void addSelectionListener(PositionEvent listener) {
         listeners.add(PositionEventListener.class, (PositionEventListener)listener);
     }
 
-    public void removeAudioVideoListener(PositionEvent listener) {
+    public void removeSelectionListener(PositionEvent listener) {
         listeners.remove(PositionEventListener.class, (PositionEventListener)listener);
     }
 
