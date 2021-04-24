@@ -16,7 +16,9 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionListener;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.RoundRectangle2D;
+import java.util.EventListener;
 import javax.swing.JPanel;
+import javax.swing.event.EventListenerList;
 
 /**
  *
@@ -88,7 +90,7 @@ public class SliderCheckBox extends JPanel {
         double max_thresold_x_cursor = getWidth() - wel / 2 - xel;
         
         double xel_ref = xy.getX() < min_thresold_x_cursor ? xel : 
-                (xy.getX() > max_thresold_x_cursor ? getWidth() - 10 - arc : xy.getX() - arc / 2);
+                (xy.getX() > max_thresold_x_cursor ? wrr - xrr * 3 : xy.getX() - arc / 2);
         
         state = xel_ref != xel;
         
@@ -107,6 +109,8 @@ public class SliderCheckBox extends JPanel {
         g.setColor(color);        
         Ellipse2D el = new Ellipse2D.Double(xel_ref, yel, wel, hel);
         g.fill(el);
+        
+        firePositionState(xy.getX() > max_thresold_x_cursor);
     }
     
     public boolean getState() {
@@ -132,4 +136,51 @@ public class SliderCheckBox extends JPanel {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     // End of variables declaration//GEN-END:variables
+
+    // <editor-fold defaultstate="collapsed" desc="Events">
+    //==========================================================================
+    // Events
+    //==========================================================================
+
+    private final EventListenerList listeners = new EventListenerList();
+
+    public void addAudioVideoListener(PositionEvent listener) {
+        listeners.add(PositionEventListener.class, (PositionEventListener)listener);
+    }
+
+    public void removeAudioVideoListener(PositionEvent listener) {
+        listeners.remove(PositionEventListener.class, (PositionEventListener)listener);
+    }
+
+    public Object[] getListeners() {
+        return listeners.getListenerList();
+    }
+
+    protected void firePositionState(boolean selected) {
+        for(Object o : getListeners()){
+            if(o instanceof PositionEventListener){
+                PositionEventListener listen = (PositionEventListener)o;
+                listen.isSelected(selected);
+                break;
+            }
+        }
+    }
+    
+    public static interface PositionEvent {
+        public void isSelected(boolean sel);
+    }
+    
+    public abstract static class PositionEventListener implements PositionEvent, EventListener {
+        // All events
+    }
+    
+    public static class PositionEventAdapter extends PositionEventListener {
+
+        @Override
+        public void isSelected(boolean sel) { }
+        
+    }
+    
+    // </editor-fold>
+    
 }
