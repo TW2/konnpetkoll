@@ -2,7 +2,7 @@
  * Copyright to guys of StackOverflow
  * https://stackoverflow.com/questions/16213836/java-swing-jtextfield-set-placeholder
  */
-package org.wingate.freectrl;
+package org.wingate.konnpetkoll.swing;
 
 import java.awt.Color;
 import java.awt.Font;
