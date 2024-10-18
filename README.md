@@ -24,3 +24,8 @@ Spectrogram :
 ![Spectrogram](https://github.com/TW2/konnpetkoll/blob/main/screenshots/04.png)
 
 For this component, you can also use it with on demand image.
+
+
+FFPlayer, thanks to FFmpeg and Bytedeco projects :
+
+![FFPlayer](https://github.com/TW2/konnpetkoll/blob/main/screenshots/05.png)
