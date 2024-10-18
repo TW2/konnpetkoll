@@ -17,10 +17,10 @@ Waveform :
 
 ![Waveform](https://github.com/TW2/konnpetkoll/blob/main/screenshots/03.png)
 
-For this component, you can also use it with image on demand.
+For this component, you can also use it with on demand image.
 
 Spectrogram :
 
 ![Spectrogram](https://github.com/TW2/konnpetkoll/blob/main/screenshots/04.png)
 
-For this component, you can also use it with image on demand.
+For this component, you can also use it with on demand image.
