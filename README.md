@@ -28,3 +28,12 @@ table.addLine("Integer", 0);
 table.addLine("Double", 0d);
 table.addLine("Color", new KKWithDialog(java.awt.Color.yellow));
 ```
+
+PlaceholderTextField :<br />
+![PlaceholderTextField](https://github.com/TW2/konnpetkoll/blob/main/screenshots/02.png)
+
+Waveform :<br />
+![Waveform](https://github.com/TW2/konnpetkoll/blob/main/screenshots/03.png)
+
+Spectrogram :<br />
+![Spectrogram](https://github.com/TW2/konnpetkoll/blob/main/screenshots/04.png)
