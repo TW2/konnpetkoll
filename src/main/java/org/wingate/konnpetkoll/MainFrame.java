@@ -23,6 +23,7 @@ import org.wingate.konnpetkoll.swing.KKPrTable.KKList;
 import org.wingate.konnpetkoll.swing.KKPrTable.KKWithDialog;
 import org.wingate.konnpetkoll.swing.Waveform;
 import org.wingate.konnpetkoll.swing.Spectrogram;
+import org.wingate.konnpetkoll.swing.PlaceholderTextField;
 
 /**
  *
@@ -34,6 +35,7 @@ public class MainFrame extends javax.swing.JFrame {
     private final JScrollPane scrollTable;
     private final Waveform waveForm = new Waveform();
     private final Spectrogram spec = new Spectrogram();
+    private final PlaceholderTextField phtf = new PlaceholderTextField();
 
     /**
      * Creates new form MainFrame
@@ -76,6 +78,11 @@ public class MainFrame extends javax.swing.JFrame {
         spec.setTime(14d, 15d);
         getContentPane().add(spec);
         spec.repaint();
+        
+        phtf.setLocation(100, 230);
+        phtf.setSize(300, 20);
+        phtf.setPlaceholder("Type your surname");
+        getContentPane().add(phtf);
     }
 
     /**
