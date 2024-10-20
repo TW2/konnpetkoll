@@ -26,16 +26,18 @@ import java.awt.event.MouseMotionAdapter;
 import java.awt.geom.Line2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ShortBuffer;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.sound.sampled.AudioFormat;
-import javax.sound.sampled.AudioInputStream;
-import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.UnsupportedAudioFileException;
 import javax.swing.JPanel;
+import org.bytedeco.javacv.FFmpegFrameGrabber;
+import org.bytedeco.javacv.Frame;
 import org.wingate.konnpetkoll.util.DrawColor;
 
 /**
@@ -45,6 +47,7 @@ import org.wingate.konnpetkoll.util.DrawColor;
 public class Waveform extends JPanel {
     
     private String path = null;
+    private FFmpegFrameGrabber grabber = null;
     
     private BufferedImage image = null;
     private double secStart = 0d, oldSecStart = -1d;
@@ -126,8 +129,12 @@ public class Waveform extends JPanel {
         });
     }
     
-    public void setPath(String path){
-        this.path = path;
+    public void setPath(String path){        
+        File file = new File(path);
+        if(file.exists() && file.isFile()){
+            this.path = path;
+            grabber = new FFmpegFrameGrabber(file);
+        }
     }
     
     public void setTime(double secStart, double secEnd){
@@ -143,11 +150,13 @@ public class Waveform extends JPanel {
         
         g2d.setColor(Color.lightGray);
         g2d.fillRect(0, 0, getWidth(), getHeight());
+        
+        
         if(path != null && secStart != secEnd){
             try {
                 
                 if(secStart != oldSecStart && secEnd != oldSecEnd){
-                    doBufferedImage();
+                    doBufferedImage(getWidth(), getHeight());
                     oldSecStart = secStart;
                     oldSecEnd = secEnd;
                 }
@@ -265,60 +274,80 @@ public class Waveform extends JPanel {
         }        
     }
     
-    public void doBufferedImage() throws UnsupportedAudioFileException, IOException{
-        image = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_ARGB);
+    public void doBufferedImage(int iWidth, int iHeight) throws UnsupportedAudioFileException, IOException{
+        image = new BufferedImage(iWidth, iHeight, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = image.createGraphics();
         
-        try (AudioInputStream ais = AudioSystem.getAudioInputStream(new File(path))) {
-            AudioFormat format = ais.getFormat();
+        // Background
+        g.setColor(backgroundColor);
+        g.fillRect(0, 0, iWidth, iHeight);
+        
+        grabber.start();
+        
+        if(grabber.getAudioChannels() > 0){
+            grabber.setTimestamp(Math.round(secStart * 1000L));
             
-            int bytesPerFrame = ais.getFormat().getFrameSize();
-            //long frames = ais.getFrameLength();
-            //double durSeconds = (double)frames / format.getFrameRate();
-            
-            long startFrame = Math.round(secStart * format.getFrameRate());
-            long endFrame = Math.round(secEnd * format.getFrameRate());
-            
-            long startBytes = startFrame * bytesPerFrame;
-            long endBytes = endFrame * bytesPerFrame;
-            
-            if(startBytes != 0L) ais.skip(startBytes);
-            byte[] audioBuffer = new byte[(int)(endBytes - startBytes)];
-            
-            ais.read(audioBuffer, 0, audioBuffer.length);
-            
-            //Draw
-            // Background
-            g.setColor(backgroundColor);
-            g.fillRect(0, 0, image.getWidth(), image.getHeight());
-            
-            int bytesPerPixel = (int)((endBytes - startBytes) / image.getWidth());
-            
-            // Copie à l'identique du tableau afin de parcourir en entier
-            // les bytes audio (audioBuffer) et traitement par pixel
-            byte[] audio = Arrays.copyOf(audioBuffer, audioBuffer.length);
-            int progression = 0;
-            
-            int middle = getHeight() / 2;
-            
-            for(int x=0; x<image.getWidth(); x++){
-                // Copie d'une partie de l'audio suivant la progression
-                byte[] pixel = Arrays.copyOfRange(
-                        audio, progression, progression + bytesPerPixel);
-                progression += bytesPerPixel;
+            boolean stop = false;
+            try(ByteArrayOutputStream baos = new ByteArrayOutputStream();){
+                long msElapsed = Math.round(secStart * 1000L);
+                while(stop == false){
+                    final Frame frame;
+                    frame = grabber.grab();
+                    
+                    if(frame == null){
+                        break; // EOF
+                    }
+                    
+                    // Audio frame check
+                    if(frame.samples != null){
+                        final ShortBuffer channelSamplesShortBuffer = (ShortBuffer)frame.samples[0];
+                        channelSamplesShortBuffer.rewind();
+                        
+                        final ByteBuffer outBuffer = ByteBuffer.allocate(channelSamplesShortBuffer.capacity() * 2);
+                        
+                        for(int i=0; i<channelSamplesShortBuffer.capacity(); i++){
+                            short val = channelSamplesShortBuffer.get(i);
+                            outBuffer.putShort(val);
+                        }
+                        
+                        baos.write(outBuffer.array(), 0, outBuffer.array().length);
+                        
+                        msElapsed += outBuffer.array().length;
+                        if(msElapsed >= Math.round(secEnd * 1000L)){
+                            stop = true;
+                        }
+                    }
+                }
                 
-                g.setColor(outerColor);
-                float doAverageVar = doAverage(pixel);
-                g.draw(new Line2D.Float(x, middle, x, doAverageVar));
-                g.draw(new Line2D.Float(x, middle, x, 100 - doAverageVar));
+                byte[] audio = baos.toByteArray();
                 
-                g.setColor(innerColor);
-                float doRootMeanSquareVar = doRootMeanSquare(pixel);
-                g.draw(new Line2D.Float(x, middle, x, doRootMeanSquareVar));
-                g.draw(new Line2D.Float(x, middle, x, 100 - doRootMeanSquareVar));
+                int bytesPerPixel = (int)(audio.length / iWidth);                
+                int progression = 0;
+                int middle = iHeight / 2;
+
+                for(int x=0; x<iWidth; x++){
+                    // Copie d'une partie de l'audio suivant la progression
+                    byte[] pixel = Arrays.copyOfRange(
+                            audio, progression, progression + bytesPerPixel);
+                    progression += bytesPerPixel;
+
+                    g.setColor(outerColor);
+                    float doAverageVar = doAverage(pixel);
+                    g.draw(new Line2D.Float(x, middle, x, doAverageVar));
+                    g.draw(new Line2D.Float(x, middle, x, iHeight - doAverageVar));
+
+                    g.setColor(innerColor);
+                    float doRootMeanSquareVar = doRootMeanSquare(pixel);
+                    g.draw(new Line2D.Float(x, middle, x, doRootMeanSquareVar));
+                    g.draw(new Line2D.Float(x, middle, x, iHeight - doRootMeanSquareVar));
+                }
+            }catch(FFmpegFrameGrabber.Exception ex){
+                
             }
-            
         }
+        
+        grabber.stop();
+        grabber.release();
         
         g.dispose();
     }
@@ -665,6 +694,8 @@ public class Waveform extends JPanel {
         this.areaSelectionAlpha = areaSelectionAlpha;
         repaint();
     }
+    
+    
 
     /**
      * This method is called from within the constructor to initialize the form.
