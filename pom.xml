@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.wingate</groupId>
     <artifactId>konnpetkoll</artifactId>
-    <version>0.0.1_2024-09</version>
+    <version>0.0.2_2024-10</version>
     <packaging>jar</packaging>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
