@@ -26,6 +26,7 @@ import java.awt.event.MouseMotionAdapter;
 import java.awt.geom.Line2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -34,6 +35,10 @@ import java.nio.ShortBuffer;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.sound.sampled.AudioFileFormat;
+import javax.sound.sampled.AudioFormat;
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.UnsupportedAudioFileException;
 import javax.swing.JPanel;
 import org.bytedeco.javacv.FFmpegFrameGrabber;
@@ -48,6 +53,7 @@ public class Waveform extends JPanel {
     
     private String path = null;
     private FFmpegFrameGrabber grabber = null;
+    private boolean classicMode = false;
     
     private BufferedImage image = null;
     private double secStart = 0d, oldSecStart = -1d;
@@ -127,6 +133,14 @@ public class Waveform extends JPanel {
                 }
             }
         });
+    }
+    
+    public boolean getClassicMode(){
+        return classicMode;
+    }
+    
+    public void setClassicMode(boolean classicMode){
+        this.classicMode = classicMode;
     }
     
     public void setPath(String path){        
@@ -288,7 +302,8 @@ public class Waveform extends JPanel {
             grabber.setTimestamp(Math.round(secStart * 1000L));
             
             boolean stop = false;
-            try(ByteArrayOutputStream baos = new ByteArrayOutputStream();){
+            try(ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    ByteArrayOutputStream baos2 = new ByteArrayOutputStream();){
                 long msElapsed = Math.round(secStart * 1000L);
                 while(stop == false){
                     final Frame frame;
@@ -319,7 +334,27 @@ public class Waveform extends JPanel {
                     }
                 }
                 
-                byte[] audio = baos.toByteArray();
+                // Conversion
+                AudioFormat format = new AudioFormat(
+                        44100, // Sample rate
+                        16, // Sample size in bits
+                        2, // Channels
+                        true, // Signed
+                        true // BigEndian
+                );
+                
+                AudioInputStream in = new AudioInputStream(
+                        // Stream
+                        new ByteArrayInputStream(baos.toByteArray()),
+                        // AudioFormat
+                        format,
+                        // Length
+                        baos.toByteArray().length
+                );
+                
+                AudioSystem.write(in, AudioFileFormat.Type.WAVE, baos2);
+                
+                byte[] audio = baos2.toByteArray();
                 
                 int bytesPerPixel = (int)(audio.length / iWidth);                
                 int progression = 0;
@@ -331,15 +366,23 @@ public class Waveform extends JPanel {
                             audio, progression, progression + bytesPerPixel);
                     progression += bytesPerPixel;
 
-                    g.setColor(outerColor);
-                    float doAverageVar = doAverage(pixel);
-                    g.draw(new Line2D.Float(x, middle, x, doAverageVar));
-                    g.draw(new Line2D.Float(x, middle, x, iHeight - doAverageVar));
+                    if(classicMode == true){
+                        g.setColor(outerColor);
+                        byte b = doClassicMethod(pixel, format);
+                        g.draw(new Line2D.Float(x, middle, x, iHeight * (128 - b) / 256));                        
+                        g.draw(new Line2D.Float(x, middle, x, iHeight - (iHeight * (128 - b) / 256)));
+                    }else{
+                        g.setColor(outerColor);
+                        float doAverageVar = doAverage(pixel);
+                        g.draw(new Line2D.Float(x, middle, x, doAverageVar));
+                        g.draw(new Line2D.Float(x, middle, x, iHeight - doAverageVar));
 
-                    g.setColor(innerColor);
-                    float doRootMeanSquareVar = doRootMeanSquare(pixel);
-                    g.draw(new Line2D.Float(x, middle, x, doRootMeanSquareVar));
-                    g.draw(new Line2D.Float(x, middle, x, iHeight - doRootMeanSquareVar));
+                        g.setColor(innerColor);
+                        float doRootMeanSquareVar = doRootMeanSquare(pixel);
+                        g.draw(new Line2D.Float(x, middle, x, doRootMeanSquareVar));
+                        g.draw(new Line2D.Float(x, middle, x, iHeight - doRootMeanSquareVar));
+                    }
+                    
                 }
             }catch(FFmpegFrameGrabber.Exception ex){
                 
@@ -371,6 +414,16 @@ public class Waveform extends JPanel {
         }
         float mean = squaredsum / samples.length;
         return (float)Math.sqrt(mean);
+    }
+    
+    private byte doClassicMethod(byte[] samples, AudioFormat format){
+        int value = 0;        
+        for(int i=0; i<samples.length/2; i++){
+            int MSB = format.isBigEndian() ? (int)samples[2*i] : (int)samples[2*i+1];
+            int LSB = format.isBigEndian() ? (int)samples[2*i+1] : (int)samples[2*i];
+            value = Math.max(value, MSB << 8 | (255 & LSB));            
+        }
+        return (byte)(128 * value / 32768);
     }
     
     private double getTrueInteger(double value, double step){

@@ -17,6 +17,7 @@
 package org.wingate.konnpetkoll;
 
 import javax.swing.JScrollPane;
+import org.wingate.konnpetkoll.swing.ColorViewer;
 import org.wingate.konnpetkoll.swing.KKPrTable;
 import org.wingate.konnpetkoll.swing.KKPrTable.KKCheckBox;
 import org.wingate.konnpetkoll.swing.KKPrTable.KKList;
@@ -36,6 +37,7 @@ public class MainFrame extends javax.swing.JFrame {
     private final Waveform waveForm = new Waveform();
     private final Spectrogram spec = new Spectrogram();
     private final PlaceholderTextField phtf = new PlaceholderTextField();
+    private final ColorViewer cv = new ColorViewer();
 
     /**
      * Creates new form MainFrame
@@ -83,6 +85,10 @@ public class MainFrame extends javax.swing.JFrame {
         phtf.setSize(300, 20);
         phtf.setPlaceholder("Type your surname");
         getContentPane().add(phtf);
+        
+        cv.setLocation(100, 510);
+        cv.setSize(300, 50);
+        getContentPane().add(cv);
     }
 
     /**

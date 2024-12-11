@@ -11,7 +11,7 @@ public class Konnpetkoll {
     public static void main(String[] args) {
         EventQueue.invokeLater(()->{
             MainFrame mf = new MainFrame();
-            mf.setSize(800, 600);
+            mf.setSize(800, 700);
             mf.setLocationRelativeTo(null);
             mf.setVisible(true);
         });
